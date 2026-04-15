@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+pydantic[email]
+pydantic-settings
+sqlalchemy
+alembic
+psycopg[binary]
+passlib[bcrypt]
+authlib
+python-multipart
+python-dotenv
+redis
+httpx
+loguru
+python-telegram-bot[job-queue]

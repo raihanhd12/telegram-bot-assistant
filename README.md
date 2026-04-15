@@ -28,6 +28,11 @@ src/
 
 ## Setup
 1. Install dependency
+  - Opsi non-Poetry untuk server:
+```bash
+pip install -r requirements.txt
+```
+  - Opsi Poetry:
 ```bash
 poetry install
 ```
@@ -38,12 +43,36 @@ cp .env.example .env
 ```
 
 3. Jalankan migrasi
+  - Opsi non-Poetry:
+```bash
+alembic upgrade head
+```
+  - Opsi Poetry:
 ```bash
 poetry run alembic upgrade head
 ```
 
 4. Jalankan bot
+  - Opsi non-Poetry:
 ```bash
+python main.py
+```
+  - Opsi Poetry:
+```bash
+poetry run python main.py
+```
+
+## Menjalankan di server dengan PM2
+Kalau server kamu tidak pakai Poetry, alurnya biasanya seperti ini:
+```bash
+pip install -r requirements.txt
+alembic upgrade head
+pm2 start main.py --name telegram-bot-task-assigned --interpreter python3
+```
+
+Kalau kamu ingin tetap pakai Poetry di server, pastikan `poetry` memang terpasang lalu jalankan:
+```bash
+poetry install --only main
 poetry run python main.py
 ```
 
