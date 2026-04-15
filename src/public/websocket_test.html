@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WebSocket Test - FastAPI Starter</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        max-width: 800px;
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .container {
+        margin-bottom: 20px;
+      }
+      input,
+      select,
+      button {
+        margin: 5px;
+        padding: 8px;
+      }
+      #messages {
+        border: 1px solid #ccc;
+        height: 400px;
+        overflow-y: scroll;
+        padding: 10px;
+        background-color: #f9f9f9;
+      }
+      .message {
+        margin-bottom: 10px;
+        padding: 5px;
+        border-radius: 3px;
+      }
+      .system {
+        background-color: #e3f2fd;
+      }
+      .sent {
+        background-color: #e8f5e8;
+      }
+      .received {
+        background-color: #fff3e0;
+      }
+      .error {
+        background-color: #ffebee;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>FastAPI WebSocket Test</h1>
+
+    <div class="container">
+      <h3>Connection Settings</h3>
+      <input
+        type="text"
+        id="websocketUrl"
+        placeholder="WebSocket URL"
+        value="ws://localhost:8000/api/v1/chat/ws"
+      />
+      <input type="text" id="apiKey" placeholder="API Key (optional)" />
+      <input type="text" id="userId" placeholder="User ID" value="test-user" />
+      <button id="connectBtn">Connect</button>
+      <button id="disconnectBtn" disabled>Disconnect</button>
+    </div>
+
+    <div class="container">
+      <h3>Send Message</h3>
+      <select id="messageType">
+        <option value="message">Regular Message</option>
+        <option value="echo">Echo</option>
+        <option value="broadcast">Broadcast</option>
+        <option value="ping">Ping</option>
+      </select>
+      <input
+        type="text"
+        id="messageInput"
+        placeholder="Type your message here..."
+      />
+      <button id="sendBtn" disabled>Send</button>
+    </div>
+
+    <div class="container">
+      <h3>Messages</h3>
+      <button onclick="clearMessages()">Clear</button>
+      <div id="messages"></div>
+    </div>
+
+    <script>
+      let ws = null;
+      let isConnected = false;
+
+      const connectBtn = document.getElementById("connectBtn");
+      const disconnectBtn = document.getElementById("disconnectBtn");
+      const sendBtn = document.getElementById("sendBtn");
+      const messagesDiv = document.getElementById("messages");
+      const messageInput = document.getElementById("messageInput");
+      const messageType = document.getElementById("messageType");
+
+      connectBtn.addEventListener("click", connect);
+      disconnectBtn.addEventListener("click", disconnect);
+      sendBtn.addEventListener("click", sendMessage);
+      messageInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") sendMessage();
+      });
+
+      function connect() {
+        const url = document.getElementById("websocketUrl").value;
+        const apiKey = document.getElementById("apiKey").value;
+        const userId = document.getElementById("userId").value;
+
+        try {
+          ws = new WebSocket(url);
+
+          // Set headers (Note: WebSocket headers are limited in browsers)
+          if (apiKey) {
+            // In a real implementation, you might need to pass this via query params
+            // or handle authentication differently
+          }
+
+          ws.onopen = (event) => {
+            isConnected = true;
+            connectBtn.disabled = true;
+            disconnectBtn.disabled = false;
+            sendBtn.disabled = false;
+            addMessage("Connected to WebSocket!", "system");
+          };
+
+          ws.onmessage = (event) => {
+            try {
+              const data = JSON.parse(event.data);
+              addMessage(
+                `Received: ${JSON.stringify(data, null, 2)}`,
+                "received"
+              );
+            } catch (e) {
+              addMessage(`Received (text): ${event.data}`, "received");
+            }
+          };
+
+          ws.onerror = (error) => {
+            addMessage(`WebSocket error: ${error}`, "error");
+          };
+
+          ws.onclose = (event) => {
+            isConnected = false;
+            connectBtn.disabled = false;
+            disconnectBtn.disabled = true;
+            sendBtn.disabled = true;
+            addMessage(
+              `Connection closed: ${event.code} - ${event.reason}`,
+              "system"
+            );
+          };
+        } catch (error) {
+          addMessage(`Connection failed: ${error}`, "error");
+        }
+      }
+
+      function disconnect() {
+        if (ws) {
+          ws.close();
+        }
+      }
+
+      function sendMessage() {
+        if (!isConnected || !ws) {
+          addMessage("Not connected!", "error");
+          return;
+        }
+
+        const message = messageInput.value.trim();
+        const type = messageType.value;
+
+        if (!message) {
+          addMessage("Please enter a message!", "error");
+          return;
+        }
+
+        const messageData = {
+          type: type,
+          content: message,
+          timestamp: Date.now(),
+        };
+
+        try {
+          ws.send(JSON.stringify(messageData));
+          addMessage(`Sent (${type}): ${message}`, "sent");
+          messageInput.value = "";
+        } catch (error) {
+          addMessage(`Send failed: ${error}`, "error");
+        }
+      }
+
+      function addMessage(message, type) {
+        const messageElement = document.createElement("div");
+        messageElement.className = `message ${type}`;
+        messageElement.innerHTML = `<strong>[${new Date().toLocaleTimeString()}]</strong> ${message}`;
+        messagesDiv.appendChild(messageElement);
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+      }
+
+      function clearMessages() {
+        messagesDiv.innerHTML = "";
+      }
+
+      // Test functions
+      function testPing() {
+        if (isConnected && ws) {
+          ws.send(JSON.stringify({ type: "ping", content: "test" }));
+          addMessage("Sent ping", "sent");
+        }
+      }
+
+      function testBroadcast() {
+        if (isConnected && ws) {
+          ws.send(
+            JSON.stringify({ type: "broadcast", content: "Hello everyone!" })
+          );
+          addMessage("Sent broadcast", "sent");
+        }
+      }
+
+      // Add test buttons
+      document.addEventListener("DOMContentLoaded", () => {
+        const container = document.querySelector(".container:last-of-type");
+        const testDiv = document.createElement("div");
+        testDiv.innerHTML = `
+                <h3>Quick Tests</h3>
+                <button onclick="testPing()">Test Ping</button>
+                <button onclick="testBroadcast()">Test Broadcast</button>
+            `;
+        container.appendChild(testDiv);
+      });
+    </script>
+  </body>
+</html>

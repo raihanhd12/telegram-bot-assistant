@@ -1,0 +1,41 @@
+services:
+  telegram-bot:
+    build: .
+    container_name: tebak-kata-bot
+    restart: unless-stopped
+    environment:
+      - ENVIRONMENT=development
+      - BOT_TOKEN=${BOT_TOKEN}
+      - DATABASE_URL=postgresql+psycopg://postgres:postgres@postgres:5432/tebak_kata
+      - GAME_TIMEOUT=60
+      - HINT_PENALTY=0.5
+      - MAX_HINTS=3
+      - LLM_URL=${LLM_URL}
+      - LLM_HEADER_API_KEY=${LLM_HEADER_API_KEY:-Authorization}
+      - LLM_MODEL_API_KEY=${LLM_MODEL_API_KEY}
+      - LLM_MODEL_ID=${LLM_MODEL_ID:-gpt-4}
+      - LOG_LEVEL=INFO
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: tebak-kata-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=tebak_kata
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:
