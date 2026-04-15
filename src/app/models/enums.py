@@ -1,6 +1,17 @@
 """Shared enums for task-assignment models."""
 
-from enum import StrEnum
+from enum import Enum
+
+try:
+    from enum import StrEnum
+except ImportError:  # Python < 3.11
+
+    class StrEnum(str, Enum):
+        """Compatibility fallback for Python 3.10."""
+
+        pass
+
+
 from typing import Type
 
 
